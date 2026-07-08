@@ -1150,13 +1150,19 @@ async function sendChat(text) {
     // text/plain avoids a CORS preflight so the browser can call Apps Script directly.
     const r = await fetch(CHATBOT_URL, {
       method: 'POST',
+      redirect: 'follow',
       headers: { 'content-type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ messages: chatState.messages.slice(-12), rooms: buildRooms() }),
     });
-    const data = await r.json().catch(() => ({}));
+    const raw = await r.text();
+    var data;
+    try { data = JSON.parse(raw); } catch (_p) {
+      var m = raw.match(/\{[\s\S]*\}/);
+      data = m ? JSON.parse(m[0]) : {};
+    }
     chatState.messages.push({ role: 'assistant',
       content: data.reply || ('⚠ ' + (data.error || 'Something went wrong.')) });
-  } catch (_) {
+  } catch (err) {
     chatState.messages.push({ role: 'assistant', content: '⚠ Could not reach the assistant.' });
   } finally {
     chatState.busy = false;
