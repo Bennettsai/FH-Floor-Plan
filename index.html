@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Y Suites Fortress Hill – Floor Plan</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f172a; color: #e2e8f0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg,#1e293b,#0f172a);
+      border-bottom: 1px solid #334155;
+      padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 8px;
+    }
+    header h1 { font-size: 1.1rem; font-weight: 700; color: #f1f5f9; }
+    header p  { font-size: 0.7rem; color: #94a3b8; margin-top: 1px; }
+    .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    #lastUpdated { font-size: 0.68rem; color: #64748b; }
+    .hdr-btn {
+      border: none; border-radius: 6px; padding: 6px 11px;
+      font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+      white-space: nowrap;
+    }
+    #refreshBtn { background: #3b82f6; color: #fff; }
+    #refreshBtn:hover { background: #2563eb; }
+    #refreshBtn:disabled { background: #475569; cursor: default; }
+    #editBtn { background: #334155; color: #cbd5e1; border: 1px solid #475569; }
+    #editBtn.active, #editBtn:hover { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+
+    /* ── Edit Hint ── */
+    #editHint {
+      background: #2d1b69; border-bottom: 1px solid #7c3aed;
+      color: #c4b5fd; font-size: 0.73rem; padding: 7px 14px;
+      display: none; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    #editHint.show { display: flex; }
+    #addRoomBtn {
+      background: #7c3aed; color: #fff; border: none; border-radius: 5px;
+      padding: 4px 10px; font-size: 0.72rem; cursor: pointer; white-space: nowrap;
+    }
+    #addRoomHint { color: #fbbf24; display: none; font-size: 0.7rem; }
+
+    /* ── Group Tabs ── */
+    .tabs {
+      background: #1e293b; border-bottom: 1px solid #334155;
+      display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      background: none; border: none; border-bottom: 3px solid transparent;
+      color: #94a3b8; cursor: pointer; font-size: 0.82rem; font-weight: 500;
+      padding: 11px 14px; white-space: nowrap; flex-shrink: 0;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .tab:hover { color: #e2e8f0; }
+    .tab.active { color: #60a5fa; border-bottom-color: #60a5fa; }
+
+    /* ── Floor Selector ── */
+    .floor-nav {
+      background: #1e293b; padding: 8px 14px;
+      display: flex; gap: 5px; flex-wrap: wrap; border-bottom: 1px solid #334155;
+    }
+    .floor-btn {
+      background: #334155; border: 1px solid #475569; border-radius: 6px;
+      color: #cbd5e1; cursor: pointer; font-size: 0.75rem; font-weight: 500;
+      padding: 5px 12px; transition: all 0.15s; white-space: nowrap;
+    }
+    .floor-btn:hover, .floor-btn.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+
+    /* ── Stats Bar ── */
+    .stats-bar { background: #1e293b; border-bottom: 1px solid #334155; display: flex; }
+    .stat-pill { flex: 1; padding: 8px 6px; text-align: center; border-right: 1px solid #334155; }
+    .stat-pill:last-child { border-right: none; }
+    .stat-pill .val { font-size: 1.3rem; font-weight: 700; line-height: 1; }
+    .stat-pill .lbl { font-size: 0.6rem; color: #94a3b8; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .stat-empty .val       { color: #6b7280; }
+    .stat-confirmed .val   { color: #34d399; }
+    .stat-unconfirmed .val { color: #fbbf24; }
+    .stat-arrived .val     { color: #60a5fa; }
+    .stat-departed .val    { color: #f472b6; }
+    .stat-total .val       { color: #93c5fd; }
+
+    /* ── Main Layout ── */
+    .main {
+      padding: 14px;
+      display: flex; gap: 14px; align-items: flex-start;
+    }
+
+    /* ── Floor Plan Panel ── */
+    .plan-panel { flex: 1; min-width: 0; }
+    .plan-wrapper {
+      position: relative;
+      width: 100%;
+      border-radius: 8px; overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.45);
+      touch-action: none; /* prevent scroll interference when dragging */
+    }
+    #planImg { display: block; width: 100%; height: auto; user-select: none; }
+    #overlayContainer { position: absolute; inset: 0; pointer-events: none; }
+
+    /* ── Room Badge — scales with plan width via CSS variable ── */
+    .room-badge {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      pointer-events: all; cursor: pointer;
+      border: 1.5px solid rgba(255,255,255,0.9);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.55);
+      font-weight: 800; color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.65);
+      white-space: nowrap; user-select: none;
+      /* size and font driven by --badge-fs set via ResizeObserver */
+      font-size: var(--badge-fs, 9px);
+      width:  calc(var(--badge-fs, 9px) * 3.4);
+      height: calc(var(--badge-fs, 9px) * 3.4);
+      padding: 0;
+      line-height: 1;
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+    .room-badge:hover, .room-badge:focus {
+      transform: translate(-50%,-50%) scale(1.25);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.7); z-index: 10;
+      outline: none;
+    }
+    .room-badge.highlighted {
+      transform: translate(-50%,-50%) scale(1.3);
+      box-shadow: 0 0 0 2px #fff, 0 3px 10px rgba(0,0,0,0.7); z-index: 10;
+    }
+    body.edit-mode .room-badge { cursor: grab; border-style: dashed; }
+    body.edit-mode .room-badge:active { cursor: grabbing; }
+
+    /* ── Direction Badges ── */
+    .dir-badge {
+      position: absolute; transform: translate(-50%,-50%);
+      background: rgba(15,23,42,0.85); border: 1.5px solid #60a5fa;
+      border-radius: 6px; color: #60a5fa; font-size: 1.1rem; font-weight: 800;
+      padding: 5px 11px; pointer-events: none; user-select: none;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5); letter-spacing: 0.05em;
+      font-family: system-ui, sans-serif;
+    }
+    body.edit-mode .dir-badge { pointer-events: all; cursor: grab; }
+    body.edit-mode .dir-badge:active { cursor: grabbing; }
+
+    /* ── Tooltip ── */
+    #tooltip {
+      position: fixed; background: #1e293b; border: 1px solid #334155;
+      border-radius: 8px; padding: 9px 13px; font-size: 0.76rem;
+      pointer-events: none; z-index: 1000; min-width: 175px; max-width: 220px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.55); display: none;
+    }
+    #tooltip .tt-room { font-weight: 700; font-size: 0.88rem; color: #f1f5f9; margin-bottom: 5px; }
+    #tooltip .tt-row  { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 3px; }
+    #tooltip .tt-label { color: #94a3b8; font-size: 0.72rem; }
+    #tooltip .tt-val   { color: #e2e8f0; font-weight: 500; font-size: 0.72rem; text-align: right; }
+    .tt-divider { border-top: 1px solid #334155; margin: 5px 0; }
+    .tt-sublabel { font-size: 0.65rem; font-weight: 700; color: #34d399; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .sdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+
+    /* ── Room List Panel ── */
+    .list-panel { width: 230px; flex-shrink: 0; }
+    .list-panel h3 {
+      font-size: 0.72rem; font-weight: 600; color: #94a3b8;
+      text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;
+    }
+    .room-list {
+      display: flex; flex-direction: column; gap: 3px;
+      max-height: calc(100vh - 160px); overflow-y: auto;
+    }
+    .room-list::-webkit-scrollbar { width: 3px; }
+    .room-list::-webkit-scrollbar-track { background: #1e293b; }
+    .room-list::-webkit-scrollbar-thumb { background: #475569; border-radius: 2px; }
+    .room-row {
+      background: #1e293b; border: 1px solid #334155; border-radius: 5px;
+      padding: 6px 10px; display: flex; align-items: center; gap: 7px;
+      cursor: pointer; transition: background 0.15s, border-color 0.15s;
+    }
+    .room-row:hover { background: #263346; border-color: #3b82f6; }
+    .room-row.highlighted { background: #1d3557; border-color: #60a5fa; }
+    .rr-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .rr-code { font-weight: 700; font-size: 0.75rem; color: #e2e8f0; width: 34px; flex-shrink: 0; }
+    .rr-type { font-size: 0.65rem; color: #94a3b8; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rr-status { font-size: 0.63rem; font-weight: 600; flex-shrink: 0; }
+
+    /* ── Legend ── */
+    .legend {
+      display: flex; gap: 14px; padding: 8px 16px;
+      background: #1e293b; border-top: 1px solid #334155; flex-wrap: wrap;
+    }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.7rem; color: #94a3b8; }
+    .legend-dot  { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── Building Summary Table ── */
+    .summary-section {
+      background: #1e293b; border-top: 1px solid #334155; padding: 12px 16px;
+    }
+    .summary-section h3 {
+      font-size: 0.72rem; font-weight: 600; color: #94a3b8;
+      text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px;
+    }
+    .summary-table {
+      width: 100%; border-collapse: collapse; font-size: 0.78rem;
+    }
+    .summary-table th {
+      background: #0f172a; color: #94a3b8; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.65rem;
+      padding: 7px 12px; text-align: center; border: 1px solid #334155;
+    }
+    .summary-table td {
+      padding: 8px 12px; text-align: center; font-weight: 700; font-size: 1rem;
+      border: 1px solid #334155;
+    }
+    .summary-table td.s-type     { text-align: left; color: #e2e8f0; font-weight: 600; font-size: 0.82rem; }
+    .summary-table td.s-avail    { color: #6b7280; }
+    .summary-table td.s-confirm  { color: #34d399; }
+    .summary-table td.s-unconf   { color: #fbbf24; }
+    .summary-table td.s-arrived  { color: #60a5fa; }
+    .summary-table td.s-total    { color: #93c5fd; background: #0f172a; }
+    .summary-table tr.s-grand td { background: #0f172a; font-weight: 800; }
+
+    /* ── Error / Loading ── */
+    #errorBanner {
+      display: none; background: #7f1d1d; border-bottom: 1px solid #ef4444;
+      color: #fca5a5; font-size: 0.74rem; padding: 6px 16px;
+    }
+    #loadingOverlay {
+      position: fixed; inset: 0; background: rgba(15,23,42,0.88);
+      display: flex; align-items: center; justify-content: center; z-index: 999;
+    }
+    .spinner {
+      width: 34px; height: 34px; border: 3px solid #334155;
+      border-top-color: #60a5fa; border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── MOBILE / TABLET responsive ── */
+    @media (max-width: 768px) {
+      .main { flex-direction: column; padding: 10px; gap: 10px; }
+      .list-panel { width: 100%; }
+      .room-list {
+        max-height: 280px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3px;
+      }
+      .rr-type { display: none; } /* hide type column in grid mode on mobile */
+      header h1 { font-size: 0.95rem; }
+      .stat-pill .val { font-size: 1.1rem; }
+    }
+    @media (max-width: 480px) {
+      .header-right { gap: 5px; }
+      #lastUpdated  { display: none; }
+      .stat-pill .lbl { font-size: 0.55rem; }
+      .summary-table th, .summary-table td { padding: 5px 4px; font-size: 0.68rem; }
+      .summary-table td.s-type { font-size: 0.68rem; }
+    }
+    /* ── Chatbot Assistant ── */
+    #chatFab {
+      position: fixed; right: 18px; bottom: 18px; z-index: 1100;
+      width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
+      background: #3b82f6; color: #fff; font-size: 1.5rem; line-height: 1;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5); transition: transform 0.15s, background 0.2s;
+    }
+    #chatFab:hover { background: #2563eb; transform: scale(1.06); }
+    #chatPanel {
+      position: fixed; right: 18px; bottom: 84px; z-index: 1100;
+      width: 360px; max-width: calc(100vw - 24px); height: 520px; max-height: calc(100vh - 120px);
+      background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+      display: flex; flex-direction: column; overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    }
+    #chatPanel.chat-hidden { display: none; }
+    .chat-head {
+      background: linear-gradient(135deg,#1e293b,#0f172a); border-bottom: 1px solid #334155;
+      padding: 11px 14px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .chat-head .ttl { font-size: 0.85rem; font-weight: 700; color: #f1f5f9; }
+    .chat-head .sub { font-size: 0.62rem; color: #94a3b8; margin-top: 1px; }
+    #chatClose { background: none; border: none; color: #94a3b8; font-size: 1.4rem; cursor: pointer; line-height: 1; padding: 0 4px; }
+    #chatClose:hover { color: #f1f5f9; }
+    .chat-msgs { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .chat-msgs::-webkit-scrollbar { width: 4px; }
+    .chat-msgs::-webkit-scrollbar-thumb { background: #475569; border-radius: 2px; }
+    .chat-bubble {
+      max-width: 85%; padding: 8px 11px; border-radius: 10px; font-size: 0.8rem; line-height: 1.4;
+      white-space: pre-wrap; word-wrap: break-word;
+    }
+    .chat-bubble.user { align-self: flex-end; background: #3b82f6; color: #fff; border-bottom-right-radius: 3px; }
+    .chat-bubble.bot  { align-self: flex-start; background: #334155; color: #e2e8f0; border-bottom-left-radius: 3px; }
+    .chat-bubble.typing { color: #94a3b8; font-style: italic; }
+    .chat-input { display: flex; gap: 7px; padding: 10px; border-top: 1px solid #334155; }
+    #chatText {
+      flex: 1; background: #0f172a; border: 1px solid #334155; border-radius: 7px;
+      color: #e2e8f0; font-size: 0.82rem; padding: 9px 11px; outline: none;
+    }
+    #chatText:focus { border-color: #3b82f6; }
+    #chatSend { background: #3b82f6; color: #fff; border: none; border-radius: 7px; padding: 0 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+    #chatSend:hover { background: #2563eb; }
+    #chatSend:disabled { background: #475569; cursor: default; }
+    @media (max-width: 480px) {
+      #chatPanel { right: 8px; left: 8px; width: auto; bottom: 78px; }
+      #chatFab { right: 14px; bottom: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="loadingOverlay"><div class="spinner"></div></div>
+<div id="errorBanner"></div>
+
+<header>
+  <div style="display:flex;align-items:center;gap:12px">
+    <img src="Starvia by Y Suites on Fortress Hill.jpg" alt="Starvia by Y Suites on Fortress Hill"
+         style="height:48px;width:auto;border-radius:6px;object-fit:cover;flex-shrink:0;">
+    <div>
+      <h1>Starvia by Y Suites on Fortress Hill</h1>
+      <p style="font-size:0.88rem;color:#94a3b8;margin-top:2px;">Location: 151 King's Road, Fortress Hill, Hong Kong</p>
+      <p style="font-size:0.88rem;color:#94a3b8;margin-top:1px;">Total beds: 241 beds</p>
+      <p style="font-size:0.7rem;color:#64748b;margin-top:3px;">Interactive Floor Plan &amp; Booking Status</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <span id="lastUpdated"></span>
+    <button id="editBtn" class="hdr-btn" onclick="toggleEditMode()">✎ Edit</button>
+    <button id="refreshBtn" class="hdr-btn" onclick="loadData()">↻ Refresh</button>
+  </div>
+</header>
+
+<div id="editHint">
+  ✎ <strong>Drag</strong> badges to reposition &nbsp;|&nbsp;
+  <button id="addRoomBtn" onclick="startAddRoom()">+ Add Room</button>
+  <span id="addRoomHint">Tap the floor plan to place…</span>
+  &nbsp;| <strong>Long-press</strong> to delete
+</div>
+
+<div class="tabs" id="groupTabs">
+  <button class="tab active" data-group="3-8">Level 3–8</button>
+  <button class="tab" data-group="9-13">Level 9–13</button>
+  <button class="tab" data-group="15-16">Level 15–16</button>
+  <button class="tab" data-group="17-19">Level 17–19</button>
+</div>
+
+<div class="floor-nav" id="floorNav"></div>
+
+<div class="stats-bar">
+  <div class="stat-pill stat-empty">      <div class="val" id="sEmpty">–</div><div class="lbl">Empty</div></div>
+  <div class="stat-pill stat-confirmed">  <div class="val" id="sConfirmed">–</div><div class="lbl">Confirmed</div></div>
+  <div class="stat-pill stat-unconfirmed"><div class="val" id="sUnconf">–</div><div class="lbl">Unconfirmed</div></div>
+  <div class="stat-pill stat-arrived">    <div class="val" id="sArrived">–</div><div class="lbl">Arrived</div></div>
+  <div class="stat-pill stat-total">      <div class="val" id="sTotal">–</div><div class="lbl">Total</div></div>
+</div>
+
+<div class="main">
+  <div class="plan-panel">
+    <div class="plan-wrapper" id="planWrapper">
+      <img id="planImg" src="floor_3-8.png" alt="Floor Plan" draggable="false">
+      <div id="overlayContainer"></div>
+    </div>
+  </div>
+  <div class="list-panel">
+    <h3>Room Status</h3>
+    <div class="room-list" id="roomList"></div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#6b7280"></div> Empty</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#34d399"></div> Confirmed</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#fbbf24"></div> Unconfirmed</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#60a5fa"></div> Arrived</div>
+</div>
+
+<div class="summary-section">
+  <h3>Building Summary — All Floors</h3>
+  <table class="summary-table">
+    <thead>
+      <tr>
+        <th style="text-align:left">Room Type</th>
+        <th>Available</th>
+        <th>Confirmed</th>
+        <th>Unconfirmed</th>
+        <th>Arrived</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody id="summaryBody">
+    </tbody>
+  </table>
+</div>
+
+<!-- ── Chatbot Assistant ── -->
+<button id="chatFab" aria-label="Open assistant" title="Ask the floor plan assistant">💬</button>
+<div id="chatPanel" class="chat-hidden">
+  <div class="chat-head">
+    <div>
+      <div class="ttl">Floor Plan Assistant</div>
+      <div class="sub">Room availability only — no tenant details</div>
+    </div>
+    <button id="chatClose" aria-label="Close">×</button>
+  </div>
+  <div class="chat-msgs" id="chatMsgs"></div>
+  <form class="chat-input" id="chatForm">
+    <input id="chatText" type="text" placeholder="e.g. Which rooms are free on floor 9?" autocomplete="off">
+    <button type="submit" id="chatSend">Send</button>
+  </form>
+</div>
+
+<div id="tooltip">
+  <div class="tt-room" id="ttRoom"></div>
+  <div class="tt-row"><span class="tt-label">Status</span><span class="tt-val" id="ttStatus"></span></div>
+  <div class="tt-row"><span class="tt-label">Res No.</span><span class="tt-val" id="ttResNo"></span></div>
+  <div class="tt-row"><span class="tt-label">Gender</span><span class="tt-val" id="ttGender"></span></div>
+  <div class="tt-row"><span class="tt-label">Lease Start</span><span class="tt-val" id="ttLeaseStart"></span></div>
+  <div class="tt-row"><span class="tt-label">Lease End</span><span class="tt-val" id="ttLeaseEnd"></span></div>
+  <!-- Second booking -->
+  <div class="tt-divider" id="ttDivider2" style="display:none"></div>
+  <div class="tt-section" id="ttSection2" style="display:none">
+    <div class="tt-sublabel">Incoming Booking</div>
+    <div class="tt-row"><span class="tt-label">Status</span><span class="tt-val" id="ttStatus2"></span></div>
+    <div class="tt-row"><span class="tt-label">Res No.</span><span class="tt-val" id="ttResNo2"></span></div>
+    <div class="tt-row"><span class="tt-label">Gender</span><span class="tt-val" id="ttGender2"></span></div>
+    <div class="tt-row"><span class="tt-label">Lease Start</span><span class="tt-val" id="ttLeaseStart2"></span></div>
+    <div class="tt-row"><span class="tt-label">Lease End</span><span class="tt-val" id="ttLeaseEnd2"></span></div>
+  </div>
+</div>
+
+<script>
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxj5-fEANdJ_zR9Q5GKDBaxhYBC-7o5lVRqKAs9MvCw2sVRM9kFd13fFWTGMhajCg7d/exec';
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSbyqxodjNhioj4AAp40WjCqMkwGezrKGvGtyX8xto4MYwIcNKryQ9c-CKFsIEDbPO2Wh238M_NA4A4/pub?output=csv&gid=592873794';
+
+const FLOOR_GROUPS = {
+  '3-8':   { floors:[3,5,6,7,8],   image:'floor_3-8.png' },
+  '9-13':  { floors:[9,10,11,12,13], image:'floor_9-13.png' },
+  '15-16': { floors:[15,16],          image:'floor_15-16.png' },
+  '17-19': { floors:[17,18,19],       image:'floor_17-19.png' },
+};
+
+// Positions [x%, y%] — tuned to new floor plan images
+// Use Edit Mode to drag-adjust any badge that's off
+const ROOM_POSITIONS = {
+  '3-8': {
+    'A.01':[31.17,26.38],'A.02':[31.23,18.87],
+    'B.01':[47.7,18.87],
+    'C.01':[59.58,26.3],'C.02':[58.05,18.79],
+    'D.01':[37.42,35.26],'E.01':[37.42,41.78],
+    'F.01':[39.99,53.73],'F.02':[34.91,56.18],'F.03':[36.62,65.76],
+    'G.01':[44.27,73.12],'G.02':[36.44,71.89],
+    'H.01':[53.64,65.84],
+    'I.01':[64.42,71.2],'I.02':[70.12,71.35],'I.03':[68.52,59.63],
+  },
+  '9-13': {
+    'A.01':[31.29,26.53],'A.02':[31.41,18.87],
+    'B.01':[43.6,18.25],'B.02':[50.52,18.87],
+    'C.01':[59.77,26.3],'C.02':[58.18,18.87],
+    'D.01':[31.54,35.34],'D.02':[31.29,43.16],'D.03':[40.11,43.23],
+    'E.01':[40.11,53.88],'E.02':[34.97,56.26],'E.03':[36.8,65.76],
+    'F.01':[44.46,73.19],'F.02':[36.86,71.74],
+    'G.01':[53.95,65.84],
+    'H.01':[64.48,71.35],'H.02':[70.12,71.13],'H.03':[68.65,59.71],
+  },
+  '15-16': {
+    'A.01':[47.95,18.33],'A.02':[43.54,18.25],'A.03':[31.29,26.45],'A.04':[31.35,18.94],
+    'B.01':[31.41,35.11],'B.02':[31.35,43.08],'B.03':[40.05,43.31],
+    'C.01':[40.11,53.81],'C.02':[34.97,56.26],'C.03':[36.68,65.68],
+    'D.01':[44.46,73.12],'D.02':[36.62,71.81],
+    'E.01':[53.83,65.91],
+    'F.01':[64.54,71.43],'F.02':[70.06,71.35],'F.03':[68.65,59.78],
+  },
+  '17-19': {
+    'A.01':[47.34,18.33],'A.02':[36.13,25.07],'A.03':[36.19,18.33],
+    'B.01':[43.11,43.08],'B.02':[36.19,43.08],'B.03':[36.07,32.81],
+    'C.01':[40.11,56.11],
+    'D.01':[44.64,70.97],'D.02':[36.19,68.9],
+    'E.01':[54.01,65.84],
+    'F.01':[64.79,71.05],'F.02':[70.42,70.97],'F.03':[68.83,60.55],
+  },
+};
+
+let currentGroup='3-8', currentFloor=3;
+let bookingData={}, highlightedRoom=null;
+let editMode=false, addingRoom=false;
+
+/* ── Badge font-size scales with plan width ── */
+const planWrapper = document.getElementById('planWrapper');
+function updateBadgeScale() {
+  const w = planWrapper.offsetWidth;
+  // ~1.05% of plan width, clamped between 6px and 11px
+  const fs = Math.min(11, Math.max(6, w * 0.0105));
+  planWrapper.style.setProperty('--badge-fs', fs + 'px');
+}
+const ro = new ResizeObserver(updateBadgeScale);
+ro.observe(planWrapper);
+
+/* ── Status helpers ── */
+function getColor(s) {
+  if (!s||s==='#N/A'||!s.trim()) return '#6b7280';
+  const l=s.toLowerCase();
+  if(l.includes('depart'))    return '#f472b6';
+  if(l.includes('arriv'))     return '#60a5fa';
+  if(l.includes('unconfirm')) return '#fbbf24';
+  if(l.includes('confirm'))   return '#34d399';
+  return '#6b7280';
+}
+function getLabel(s) {
+  if(!s||s==='#N/A'||!s.trim()) return 'Empty';
+  const l=s.toLowerCase();
+  if(l.includes('depart'))    return 'Departed';
+  if(l.includes('arriv'))     return 'Arrived';
+  if(l.includes('unconfirm')) return 'Unconfirmed';
+  if(l.includes('confirm'))   return 'Confirmed';
+  return s;
+}
+
+/* ── Data loading — 3-method cascade ── */
+// 1. JSONP via Google Visualisation API (no CORS, works from file://)
+// 2. Direct CSV fetch
+// 3. CORS proxy fallbacks
+const SHEET_ID = '127r6Vi19vd4Y9Hn9bAtWnpdnCqtiWkbYm-nrmKLTYq8';
+
+function loadViaJSONP() {
+  return new Promise((resolve, reject) => {
+    const cb = '__gs' + Date.now();
+    const s = document.createElement('script');
+    const t = setTimeout(() => { cleanup(); reject(new Error('JSONP timeout')); }, 10000);
+    function cleanup() { clearTimeout(t); delete window[cb]; if (s.parentNode) s.remove(); }
+    window[cb] = function(resp) {
+      cleanup();
+      try {
+        if (resp.status !== 'ok') { reject(new Error('GViz: ' + (resp.errors||[{message:'error'}])[0].message)); return; }
+        const rows = (resp.table.rows || []).map(row =>
+          (row.c || []).map(cell => (cell && cell.v != null) ? String(cell.v) : '')
+        );
+        resolve(rows);
+      } catch(e) { reject(e); }
+    };
+    s.onerror = () => { cleanup(); reject(new Error('Script blocked')); };
+    s.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&callback=${cb}&gid=592873794&t=${Date.now()}`;
+    document.head.appendChild(s);
+  });
+}
+
+async function loadViaCSV() {
+  const urls = [
+    CSV_URL + '&t=' + Date.now(),
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent(CSV_URL),
+    'https://corsproxy.io/?url='          + encodeURIComponent(CSV_URL),
+  ];
+  for (const url of urls) {
+    try {
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) continue;
+      const text = await r.text();
+      if (!text || !text.includes(',')) continue;
+      return csvToRows(text);
+    } catch(_) {}
+  }
+  throw new Error('All fetch methods failed');
+}
+
+function csvToRows(text) {
+  return text.split('\n').slice(1).filter(l => l.trim()).map(line => {
+    const cols=[]; let cur='',q=false;
+    for(const ch of line){if(ch==='"'){q=!q}else if(ch===','&&!q){cols.push(cur);cur=''}else cur+=ch;}
+    cols.push(cur); return cols;
+  });
+}
+
+function fmtDate(v) {
+  if (!v || v === '') return '–';
+  const d = new Date(v);
+  if (!isNaN(d.getTime())) return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  return String(v).trim() || '–';
+}
+function processRows(rows) {
+  bookingData = {};
+  const sample = [];
+  rows.forEach(c => {
+    const apt = String(c[1]||'').trim(); if (!apt) return;
+    const key = apt.replace(/\s*SYSF\s*$/i,'').trim();
+    const roomStatus = String(c[8]||'').trim();
+    if (sample.length < 8 && roomStatus) sample.push('"' + roomStatus + '"');
+    bookingData[key] = {
+      floorLabel:  String(c[0] ||'').trim(),
+      roomType:    String(c[2] ||'').trim(),
+      area:        String(c[3] ||'').trim(),
+      status:      String(c[4] ||'').trim(),   // E: Booking Status
+      resNumber:   String(c[7] ||'').trim(),   // H: Res Number (shifted -1)
+      roomStatus:  roomStatus,                 // I: Room Status (was J, shifted -1)
+      gender:      String(c[9] ||'').trim(),   // J: Gender (was K, shifted -1)
+      leaseStart:  fmtDate(c[10]),             // K: Lease Start (was L, shifted -1)
+      leaseEnd:    fmtDate(c[11]),             // L: Lease End (was M, shifted -1)
+      // Second booking
+      resNumber2:  String(c[12]||'').trim(),   // M: Res Number 2
+      status2:     String(c[13]||'').trim(),   // N: Booking Status 2
+      // c[14] = O: skip
+      gender2:     String(c[15]||'').trim(),   // P: Gender 2
+      leaseStart2: fmtDate(c[16]),             // Q: Lease Start 2
+      leaseEnd2:   fmtDate(c[17]),             // R: Lease End 2
+    };
+  });
+  // Surface column J sample values so we can verify the mapping
+  const statusSample = sample.length ? 'col J values: ' + sample.join(', ') : 'col J is EMPTY for all rooms';
+  console.log('[FP] processRows complete —', statusSample);
+  window._fpStatusSample = statusSample;
+}
+
+async function loadViaAppsScript() {
+  const r = await fetch(APPS_SCRIPT_URL + '?t=' + Date.now(), { cache: 'no-store' });
+  if (!r.ok) throw new Error('Apps Script HTTP ' + r.status);
+  const json = await r.json();
+  if (!json.rows || !json.rows.length) throw new Error('Empty response');
+  return json.rows.slice(1); // skip header row
+}
+
+async function loadData() {
+  const btn = document.getElementById('refreshBtn');
+  btn.disabled = true; btn.textContent = '⟳…';
+  document.getElementById('errorBanner').style.display = 'none';
+  let loadOk = false;
+  try {
+    let rows;
+    try        { rows = await loadViaAppsScript(); console.log('[FP] Apps Script ok, rows:', rows.length); }
+    catch(e1)  {
+      console.warn('[FP] Apps Script failed:', e1.message);
+      try      { rows = await loadViaJSONP(); console.log('[FP] JSONP ok, rows:', rows.length); }
+      catch(e2){ console.warn('[FP] JSONP failed:', e2.message); rows = await loadViaCSV(); console.log('[FP] CSV ok, rows:', rows.length); }
+    }
+    processRows(rows);
+    console.log('[FP] bookingData keys:', Object.keys(bookingData).length);
+    document.getElementById('lastUpdated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    updateSummary();
+    loadOk = true;
+  } catch(e) {
+    console.error('[FP] All load methods failed:', e);
+    const b = document.getElementById('errorBanner');
+    b.textContent = '⚠ Could not load Google Sheet data. Check your internet connection.';
+    b.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = '↻ Refresh';
+    document.getElementById('loadingOverlay').style.display = 'none';
+    try { renderFloor(); } catch(re) {
+      console.error('[FP] renderFloor error:', re);
+      const b = document.getElementById('errorBanner');
+      b.textContent = '⚠ Display error: ' + re.message;
+      b.style.display = 'block';
+    }
+  }
+}
+
+/* ── Render ── */
+function renderFloor() {
+  const group=FLOOR_GROUPS[currentGroup];
+  if (!group) { console.error('[FP] Unknown group:', currentGroup); return; }
+  const pos=ROOM_POSITIONS[currentGroup]||{};
+  const fp=String(currentFloor).padStart(2,'0');
+
+  document.getElementById('floorNav').innerHTML=group.floors.map(f=>
+    `<button class="floor-btn ${f===currentFloor?'active':''}" data-floor="${f}">Floor ${f}</button>`
+  ).join('');
+  document.getElementById('planImg').src=group.image;
+
+  let cEmpty=0,cConfirmed=0,cUnconf=0,cArrived=0;
+  Object.keys(pos).forEach(rc=>{
+    const rs=(bookingData[`${fp}.${rc}`]||{}).roomStatus||'';
+    const c=getColor(rs);
+    if(c==='#6b7280') cEmpty++;
+    else if(c==='#34d399') cConfirmed++;
+    else if(c==='#fbbf24') cUnconf++;
+    else if(c==='#60a5fa') cArrived++;
+  });
+  document.getElementById('sEmpty').textContent=cEmpty;
+  document.getElementById('sConfirmed').textContent=cConfirmed;
+  document.getElementById('sUnconf').textContent=cUnconf;
+  document.getElementById('sArrived').textContent=cArrived;
+  document.getElementById('sTotal').textContent=cEmpty+cConfirmed+cUnconf+cArrived;
+
+  const container=document.getElementById('overlayContainer');
+  container.innerHTML='';
+  Object.keys(pos).forEach(rc=>{
+    const xy=pos[rc];
+    const key=`${fp}.${rc}`;
+    const data=bookingData[key]||{};
+    const color=getColor(data.roomStatus||'');
+
+    const badge=document.createElement('div');
+    badge.className='room-badge';
+    badge.style.cssText=`left:${xy[0]}%;top:${xy[1]}%;background:${color}`;
+    badge.dataset.room=rc;
+    badge.textContent=rc;
+    badge.setAttribute('role','button');
+    badge.setAttribute('tabindex','0');
+
+    if(!editMode) {
+      // Desktop hover tooltip
+      badge.addEventListener('mouseenter', e=>showTooltip(e,rc,key,data,color));
+      badge.addEventListener('mousemove',  e=>moveTooltip(e));
+      badge.addEventListener('mouseleave', hideTooltip);
+      // Click/tap highlight
+      badge.addEventListener('click', ()=>highlightRoom(rc));
+      badge.addEventListener('keydown', e=>{ if(e.key==='Enter') highlightRoom(rc); });
+      // Mobile tap: show tooltip briefly
+      badge.addEventListener('touchend', e=>{
+        e.preventDefault();
+        highlightRoom(rc);
+        showTooltipAt(e.changedTouches[0].clientX, e.changedTouches[0].clientY, rc, key, data, color);
+        setTimeout(hideTooltip, 2500);
+      });
+    } else {
+      makeDraggable(badge, rc);
+      // Long-press to delete on mobile
+      let pressTimer;
+      badge.addEventListener('touchstart', ()=>{ pressTimer=setTimeout(()=>deleteBadge(rc),800); },{passive:true});
+      badge.addEventListener('touchend', ()=>clearTimeout(pressTimer),{passive:true});
+      // Right-click delete on desktop
+      badge.addEventListener('contextmenu', e=>{ e.preventDefault(); deleteBadge(rc); });
+    }
+    container.appendChild(badge);
+  });
+
+  // Room list
+  document.getElementById('roomList').innerHTML=[...Object.keys(pos)].sort().map(rc=>{
+    const data=bookingData[`${fp}.${rc}`]||{};
+    const color=getColor(data.roomStatus||'');
+    const label=getLabel(data.roomStatus||'');
+    const type=(data.roomType||'').replace(/\s*SYSF\s*$/i,'');
+    return `<div class="room-row" data-room="${rc}" onclick="highlightRoom('${rc}')">
+      <div class="rr-dot" style="background:${color}"></div>
+      <div class="rr-code">${rc}</div>
+      <div class="rr-type">${type}</div>
+      <div class="rr-status" style="color:${color}">${label}</div>
+    </div>`;
+  }).join('');
+
+  updateBadgeScale();
+  renderDirBadges();
+}
+
+// Room types tracked in the Building Summary breakdown (code = value in the sheet, label = display name)
+const ROOM_TYPE_DEFS = [
+  { code: 'SG SYSF',   label: 'Studio Grand' },
+  { code: 'SD SYSF',   label: 'Studio Deluxe' },
+  { code: '2BRS SYSF', label: '2 Bedroom Standard' },
+  { code: '2BRP SYSF', label: '2 Bedroom Premium' },
+  { code: '3BRS SYSF', label: '3 Bedroom Standard' },
+  { code: '3BRP SYSF', label: '3 Bedroom Premium' },
+  { code: '4BRP SYSF', label: '4 Bedroom Premium' },
+  { code: '4BRS SYSF', label: '4 Bedroom Standard' },
+];
+function normType(s) { return String(s||'').trim().toUpperCase().replace(/\s+/g,' '); }
+
+function blankCounts() { return { avail:0, confirm:0, unconf:0, arrived:0 }; }
+function bumpCount(counts, colorHex) {
+  if      (colorHex==='#34d399') counts.confirm++;
+  else if (colorHex==='#fbbf24') counts.unconf++;
+  else if (colorHex==='#60a5fa') counts.arrived++;
+  else                           counts.avail++;
+}
+function rowTotal(c) { return c.avail+c.confirm+c.unconf+c.arrived; }
+function summaryRowHtml(label, c, extraClass) {
+  return `<tr class="${extraClass||''}">
+    <td class="s-type">${label}</td>
+    <td class="s-avail">${c.avail}</td>
+    <td class="s-confirm">${c.confirm}</td>
+    <td class="s-unconf">${c.unconf}</td>
+    <td class="s-arrived">${c.arrived}</td>
+    <td class="s-total">${rowTotal(c)}</td>
+  </tr>`;
+}
+
+function updateSummary() {
+  const byType = {};
+  ROOM_TYPE_DEFS.forEach(t => byType[t.code] = blankCounts());
+  const other = blankCounts();
+  const grand = blankCounts();
+
+  // IMPORTANT: counts use only the primary/current `roomStatus` field (sheet col I).
+  // Incoming-booking fields (status2, resNumber2, etc.) must NEVER factor into these
+  // counts — they describe a future reservation, not the room's current state.
+  Object.values(bookingData).forEach(d => {
+    const color = getColor(d.roomStatus||'');
+    const matched = ROOM_TYPE_DEFS.find(t => normType(t.code) === normType(d.roomType));
+    bumpCount(matched ? byType[matched.code] : other, color);
+    bumpCount(grand, color);
+  });
+
+  const rows = ROOM_TYPE_DEFS.map(t => summaryRowHtml(t.label, byType[t.code]));
+  if (rowTotal(other) > 0) rows.push(summaryRowHtml('Other', other));
+  rows.push(summaryRowHtml('Total', grand, 's-grand'));
+
+  document.getElementById('summaryBody').innerHTML = rows.join('');
+}
+
+function deleteBadge(rc) {
+  if(confirm(`Delete badge "${rc}"?`)){
+    delete ROOM_POSITIONS[currentGroup][rc]; savePositions(); renderFloor();
+  }
+}
+
+/* ── Highlight ── */
+function highlightRoom(rc) {
+  document.querySelectorAll('.room-badge.highlighted,.room-row.highlighted').forEach(el=>el.classList.remove('highlighted'));
+  if(highlightedRoom===rc){ highlightedRoom=null; return; }
+  highlightedRoom=rc;
+  document.querySelector(`.room-badge[data-room="${rc}"]`)?.classList.add('highlighted');
+  const row=document.querySelector(`.room-row[data-room="${rc}"]`);
+  if(row){ row.classList.add('highlighted'); row.scrollIntoView({block:'nearest',behavior:'smooth'}); }
+}
+
+/* ── Tooltip ── */
+function showTooltip(e,rc,key,data,color) {
+  populateTooltip(rc,data,color);
+  document.getElementById('tooltip').style.display='block';
+  moveTooltip(e);
+}
+function showTooltipAt(cx,cy,rc,key,data,color) {
+  populateTooltip(rc,data,color);
+  const tt=document.getElementById('tooltip');
+  tt.style.display='block';
+  tt.style.left=Math.min(cx+14,window.innerWidth-230)+'px';
+  tt.style.top =Math.min(cy-10,window.innerHeight-160)+'px';
+}
+function populateTooltip(rc,data,color) {
+  const fp=String(currentFloor).padStart(2,'0');
+  document.getElementById('ttRoom').innerHTML=`<span class="sdot" style="background:${color}"></span>${fp}.${rc} SYSF`;
+  const statusEl = document.getElementById('ttStatus');
+  statusEl.textContent = data.status||'–';
+  statusEl.style.color = getColor(data.roomStatus||'');
+  document.getElementById('ttResNo').textContent=data.resNumber||'–';
+  document.getElementById('ttGender').textContent=data.gender||'–';
+  document.getElementById('ttLeaseStart').textContent=data.leaseStart||'–';
+  document.getElementById('ttLeaseEnd').textContent=data.leaseEnd||'–';
+  // Second booking section — only show if data exists
+  const hasSecond = data.resNumber2 && data.resNumber2 !== '–';
+  document.getElementById('ttDivider2').style.display = hasSecond ? 'block' : 'none';
+  document.getElementById('ttSection2').style.display  = hasSecond ? 'block' : 'none';
+  if (hasSecond) {
+    document.getElementById('ttStatus2').textContent=data.status2||'–';
+    document.getElementById('ttResNo2').textContent=data.resNumber2||'–';
+    document.getElementById('ttGender2').textContent=data.gender2||'–';
+    document.getElementById('ttLeaseStart2').textContent=data.leaseStart2||'–';
+    document.getElementById('ttLeaseEnd2').textContent=data.leaseEnd2||'–';
+  }
+}
+function moveTooltip(e) {
+  const tt=document.getElementById('tooltip');
+  tt.style.left=Math.min(e.clientX+14,window.innerWidth-230)+'px';
+  tt.style.top =Math.min(e.clientY-10,window.innerHeight-160)+'px';
+}
+function hideTooltip(){ document.getElementById('tooltip').style.display='none'; }
+
+/* ── Edit Mode ── */
+function loadSavedPositions() {
+  try{
+    const s=localStorage.getItem('roomPositions_v2');
+    if(s){ const p=JSON.parse(s); Object.keys(p).forEach(g=>{ if(ROOM_POSITIONS[g]) Object.assign(ROOM_POSITIONS[g],p[g]); }); }
+  }catch(e){}
+}
+function savePositions(){
+  try{ localStorage.setItem('roomPositions_v2',JSON.stringify(ROOM_POSITIONS)); }catch(e){}
+}
+function toggleEditMode(){
+  editMode=!editMode; addingRoom=false;
+  document.body.classList.toggle('edit-mode',editMode);
+  const btn=document.getElementById('editBtn');
+  btn.classList.toggle('active',editMode);
+  btn.textContent=editMode?'✔ Done':'✎ Edit';
+  document.getElementById('editHint').classList.toggle('show',editMode);
+  if(!editMode) document.getElementById('addRoomHint').style.display='none';
+  hideTooltip();
+  renderFloor();
+}
+function startAddRoom(){
+  addingRoom=true;
+  document.getElementById('addRoomHint').style.display='inline';
+  planWrapper.style.cursor='crosshair';
+}
+function cancelAddRoom(){
+  addingRoom=false;
+  document.getElementById('addRoomHint').style.display='none';
+  planWrapper.style.cursor='';
+}
+
+/* ── Drag (mouse + touch) ── */
+function makeDraggable(badge, rc) {
+  let dragging=false, startX, startY;
+
+  // Mouse
+  badge.addEventListener('mousedown', e=>{
+    if(!editMode) return; e.preventDefault();
+    dragging=true; badge.style.zIndex=100; badge.style.transition='none';
+  });
+
+  // Touch
+  badge.addEventListener('touchstart', e=>{
+    if(!editMode) return;
+    dragging=true; badge.style.zIndex=100; badge.style.transition='none';
+  },{passive:true});
+
+  function moveBy(cx,cy) {
+    if(!dragging) return;
+    const r=planWrapper.getBoundingClientRect();
+    const x=Math.max(1,Math.min(99,((cx-r.left)/r.width)*100));
+    const y=Math.max(1,Math.min(99,((cy-r.top)/r.height)*100));
+    badge.style.left=x+'%'; badge.style.top=y+'%';
+  }
+  function endDrag() {
+    if(!dragging) return; dragging=false;
+    badge.style.zIndex=''; badge.style.transition='';
+    ROOM_POSITIONS[currentGroup][rc]=[
+      parseFloat(parseFloat(badge.style.left).toFixed(2)),
+      parseFloat(parseFloat(badge.style.top).toFixed(2))
+    ];
+    savePositions();
+  }
+
+  document.addEventListener('mousemove', e=>moveBy(e.clientX,e.clientY));
+  document.addEventListener('mouseup', endDrag);
+  document.addEventListener('touchmove', e=>{ if(dragging){ e.preventDefault(); moveBy(e.touches[0].clientX,e.touches[0].clientY); } },{passive:false});
+  document.addEventListener('touchend', endDrag,{passive:true});
+}
+
+/* ── Click/tap plan to add room ── */
+function handlePlanTap(cx,cy) {
+  if(!editMode||!addingRoom) return;
+  const r=planWrapper.getBoundingClientRect();
+  const x=parseFloat(((cx-r.left)/r.width*100).toFixed(2));
+  const y=parseFloat(((cy-r.top)/r.height*100).toFixed(2));
+  const code=(prompt('Enter room code (e.g. A.01):')||'').trim().toUpperCase();
+  if(!code){ cancelAddRoom(); return; }
+  ROOM_POSITIONS[currentGroup][code]=[x,y];
+  savePositions(); cancelAddRoom(); renderFloor();
+}
+planWrapper.addEventListener('click', e=>{
+  if(e.target.classList.contains('room-badge')) return;
+  handlePlanTap(e.clientX,e.clientY);
+});
+planWrapper.addEventListener('touchend', e=>{
+  if(!addingRoom) return;
+  e.preventDefault();
+  if(e.target.classList.contains('room-badge')) return;
+  handlePlanTap(e.changedTouches[0].clientX,e.changedTouches[0].clientY);
+},{passive:false});
+
+/* ── Direction Badges ── */
+const DIR_KEYS    = ['N','S','E','W'];
+const DIR_DEFAULTS_POS = { N:[50,4], S:[50,93], E:[92,50], W:[8,50] };
+const DIR_DEFAULTS_LBL = { N:'N', S:'S', E:'E', W:'W' };
+const DIR_GROUP_KEYS = Object.keys(FLOOR_GROUPS); // isolate direction badges per tab
+
+function defaultDirPositions() {
+  const o = {}; DIR_GROUP_KEYS.forEach(g => { o[g] = JSON.parse(JSON.stringify(DIR_DEFAULTS_POS)); }); return o;
+}
+function defaultDirLabels() {
+  const o = {}; DIR_GROUP_KEYS.forEach(g => { o[g] = JSON.parse(JSON.stringify(DIR_DEFAULTS_LBL)); }); return o;
+}
+// Per-group maps: dirPositions[group][dir] = [x,y], dirLabels[group][dir] = label
+let dirPositions = defaultDirPositions();
+let dirLabels    = defaultDirLabels();
+
+function loadDirPositions() {
+  try {
+    const p = localStorage.getItem('dirPositions_v2');
+    if (p) {
+      const saved = JSON.parse(p);
+      DIR_GROUP_KEYS.forEach(g => { dirPositions[g] = { ...DIR_DEFAULTS_POS, ...(saved[g]||{}) }; });
+    }
+    const l = localStorage.getItem('dirLabels_v2');
+    if (l) {
+      const saved = JSON.parse(l);
+      DIR_GROUP_KEYS.forEach(g => { dirLabels[g] = { ...DIR_DEFAULTS_LBL, ...(saved[g]||{}) }; });
+    }
+  } catch(e) {}
+}
+function saveDirPositions() {
+  try {
+    localStorage.setItem('dirPositions_v2', JSON.stringify(dirPositions));
+    localStorage.setItem('dirLabels_v2',    JSON.stringify(dirLabels));
+  } catch(e) {}
+}
+
+function renderDirBadges() {
+  DIR_KEYS.forEach(dir => {
+    const id = 'dir-' + dir;
+    let el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement('div');
+      el.id = id;
+      el.className = 'dir-badge';
+      planWrapper.appendChild(el);
+      makeDirDraggable(el, dir);
+    }
+    if (!el.querySelector('input')) el.textContent = dirLabels[currentGroup][dir];
+    const [x, y] = dirPositions[currentGroup][dir];
+    el.style.left = x + '%';
+    el.style.top  = y + '%';
+  });
+}
+
+function makeDirDraggable(el, dir) {
+  let dragging = false;
+
+  // Double-click to rename (edit mode)
+  el.addEventListener('dblclick', e => {
+    if (!editMode) return;
+    e.stopPropagation();
+    const input = document.createElement('input');
+    input.value = dirLabels[currentGroup][dir];
+    input.style.cssText = 'width:52px;background:#0f172a;color:#60a5fa;border:none;outline:none;' +
+      'font-size:0.75rem;font-weight:800;text-align:center;font-family:inherit;';
+    el.textContent = '';
+    el.appendChild(input);
+    input.focus(); input.select();
+    const commit = () => {
+      const val = input.value.trim() || dirLabels[currentGroup][dir];
+      dirLabels[currentGroup][dir] = val;
+      saveDirPositions();
+      el.textContent = val;
+    };
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') { commit(); input.blur(); } });
+    input.addEventListener('blur', commit);
+  });
+
+  // Mouse drag
+  el.addEventListener('mousedown', e => {
+    if (!editMode || e.detail > 1) return; // skip on dblclick
+    e.preventDefault(); e.stopPropagation();
+    dragging = true;
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const r = planWrapper.getBoundingClientRect();
+    dirPositions[currentGroup][dir] = [
+      parseFloat(Math.max(1, Math.min(99, ((e.clientX - r.left) / r.width)  * 100)).toFixed(2)),
+      parseFloat(Math.max(1, Math.min(99, ((e.clientY - r.top)  / r.height) * 100)).toFixed(2))
+    ];
+    el.style.left = dirPositions[currentGroup][dir][0] + '%';
+    el.style.top  = dirPositions[currentGroup][dir][1] + '%';
+  });
+  document.addEventListener('mouseup', () => { if (dragging) { dragging = false; saveDirPositions(); } });
+
+  // Touch drag
+  el.addEventListener('touchstart', e => { if (!editMode) return; dragging = true; }, {passive:true});
+  document.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    const r = planWrapper.getBoundingClientRect();
+    dirPositions[currentGroup][dir] = [
+      parseFloat(Math.max(1, Math.min(99, ((t.clientX - r.left) / r.width)  * 100)).toFixed(2)),
+      parseFloat(Math.max(1, Math.min(99, ((t.clientY - r.top)  / r.height) * 100)).toFixed(2))
+    ];
+    el.style.left = dirPositions[currentGroup][dir][0] + '%';
+    el.style.top  = dirPositions[currentGroup][dir][1] + '%';
+  }, {passive:false});
+  document.addEventListener('touchend', () => { if (dragging) { dragging = false; saveDirPositions(); } });
+}
+
+/* ── Event Listeners ── */
+document.getElementById('groupTabs').addEventListener('click',e=>{
+  const tab=e.target.closest('.tab'); if(!tab) return;
+  currentGroup=tab.dataset.group; currentFloor=FLOOR_GROUPS[currentGroup].floors[0];
+  highlightedRoom=null;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  tab.classList.add('active'); renderFloor();
+});
+document.getElementById('floorNav').addEventListener('click',e=>{
+  const btn=e.target.closest('.floor-btn'); if(!btn) return;
+  currentFloor=parseInt(btn.dataset.floor); highlightedRoom=null; renderFloor();
+});
+// Close tooltip when tapping elsewhere on mobile
+document.addEventListener('touchstart',e=>{
+  if(!e.target.closest('#tooltip')&&!e.target.classList.contains('room-badge')) hideTooltip();
+},{passive:true});
+
+/* ── Chatbot Assistant ── */
+// Paste your Apps Script chatbot Web App URL here after deploying it (see DEPLOY.md).
+const CHATBOT_URL = 'PASTE_YOUR_APPS_SCRIPT_CHATBOT_URL_HERE';
+const chatState = { messages: [], busy: false, greeted: false };
+const chatPanel = document.getElementById('chatPanel');
+const chatMsgs  = document.getElementById('chatMsgs');
+const chatText  = document.getElementById('chatText');
+const chatSend  = document.getElementById('chatSend');
+
+document.getElementById('chatFab').addEventListener('click', toggleChat);
+document.getElementById('chatClose').addEventListener('click', toggleChat);
+document.getElementById('chatForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const t = chatText.value.trim();
+  if (t && !chatState.busy) { chatText.value = ''; sendChat(t); }
+});
+
+function toggleChat() {
+  chatPanel.classList.toggle('chat-hidden');
+  if (!chatPanel.classList.contains('chat-hidden')) {
+    if (!chatState.greeted) {
+      chatState.greeted = true;
+      chatState.messages.push({ role: 'assistant',
+        content: "Hi! I can answer questions about room availability on this floor plan — e.g. \"How many rooms are empty on floor 9?\" or \"Which units are unconfirmed?\". I don't have access to tenant or booking details." });
+      renderChat();
+    }
+    chatText.focus();
+  }
+}
+
+// Build PII-free room data — ONLY room code, type, and status leave the browser.
+function buildRooms() {
+  return Object.keys(bookingData).map(k => {
+    const d = bookingData[k] || {};
+    return {
+      room: k,
+      type: (d.roomType || '').replace(/\s*SYSF\s*$/i, ''),
+      status: getLabel(d.roomStatus || ''),
+    };
+  });
+}
+
+function renderChat() {
+  chatMsgs.innerHTML = chatState.messages.map(m =>
+    `<div class="chat-bubble ${m.role === 'user' ? 'user' : 'bot'}">${escapeHtml(m.content)}</div>`
+  ).join('') + (chatState.busy ? '<div class="chat-bubble bot typing">Thinking…</div>' : '');
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function sendChat(text) {
+  chatState.messages.push({ role: 'user', content: text });
+  chatState.busy = true;
+  chatSend.disabled = true;
+  renderChat();
+  if (CHATBOT_URL.indexOf('PASTE_') === 0) {
+    chatState.messages.push({ role: 'assistant',
+      content: 'The chatbot is not connected yet. Follow DEPLOY.md to deploy the Apps Script chatbot and paste its URL into CHATBOT_URL.' });
+    chatState.busy = false; chatSend.disabled = false; renderChat(); return;
+  }
+  try {
+    // text/plain avoids a CORS preflight so the browser can call Apps Script directly.
+    const r = await fetch(CHATBOT_URL, {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ messages: chatState.messages.slice(-12), rooms: buildRooms() }),
+    });
+    const data = await r.json().catch(() => ({}));
+    chatState.messages.push({ role: 'assistant',
+      content: data.reply || ('⚠ ' + (data.error || 'Something went wrong.')) });
+  } catch (_) {
+    chatState.messages.push({ role: 'assistant', content: '⚠ Could not reach the assistant.' });
+  } finally {
+    chatState.busy = false;
+    chatSend.disabled = false;
+    renderChat();
+    chatText.focus();
+  }
+}
+
+/* ── Init ── */
+loadSavedPositions();
+loadDirPositions();
+loadData();
+</script>
+</body>
+</html>
