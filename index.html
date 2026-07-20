@@ -144,10 +144,10 @@
     .dir-badge {
       position: absolute; transform: translate(-50%,-50%);
       background: rgba(15,23,42,0.85); border: 1.5px solid #60a5fa;
-      border-radius: 6px; color: #60a5fa; font-size: 1.1rem; font-weight: 800;
-      padding: 5px 11px; pointer-events: none; user-select: none;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.5); letter-spacing: 0.05em;
-      font-family: system-ui, sans-serif;
+      border-radius: 4px; color: #60a5fa; font-size: 0.75rem; font-weight: 800;
+      padding: 3px 7px; pointer-events: none; user-select: none;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.5); letter-spacing: 0.03em;
+      font-family: system-ui, sans-serif; white-space: nowrap;
     }
     body.edit-mode .dir-badge { pointer-events: all; cursor: grab; }
     body.edit-mode .dir-badge:active { cursor: grabbing; }
@@ -954,7 +954,7 @@ planWrapper.addEventListener('touchend', e=>{
 /* ── Direction Badges ── */
 const DIR_KEYS    = ['N','S','E','W'];
 const DIR_DEFAULTS_POS = { N:[50,4], S:[50,93], E:[92,50], W:[8,50] };
-const DIR_DEFAULTS_LBL = { N:'N', S:'S', E:'E', W:'W' };
+const DIR_DEFAULTS_LBL = { N:'西北', S:'东南', E:'东北', W:'西南' };
 const DIR_GROUP_KEYS = Object.keys(FLOOR_GROUPS); // isolate direction badges per tab
 
 function defaultDirPositions() {
