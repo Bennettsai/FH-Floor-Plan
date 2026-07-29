@@ -869,6 +869,10 @@ function savePositions(){
   try{ localStorage.setItem('roomPositions_v2',JSON.stringify(ROOM_POSITIONS)); }catch(e){}
 }
 function toggleEditMode(){
+  if(!editMode){
+    var pw = prompt('Enter edit password:');
+    if(pw !== 'FH@2026') return;
+  }
   editMode=!editMode; addingRoom=false;
   document.body.classList.toggle('edit-mode',editMode);
   const btn=document.getElementById('editBtn');
