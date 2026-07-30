@@ -957,12 +957,18 @@ planWrapper.addEventListener('touchend', e=>{
 
 /* ── Direction Badges ── */
 const DIR_KEYS    = ['N','S','E','W'];
+const DIR_DEFAULTS_POS_PER_GROUP = {
+  '3-8':  { N:[59.27,3.67], S:[50.15,87.22], E:[79.42,44.61], W:[13.59,44.08] },
+  '9-13': { N:[56.55,1.78], S:[50.09,87.6],  E:[74.28,42.08], W:[11.39,41.93] },
+  '15-16':{ N:[49.54,10.28],S:[49.66,87.37], E:[76.73,44.69], W:[13.59,44.77] },
+  '17-19':{ N:[49.79,9.67], S:[49.91,86.99], E:[77.34,45.53], W:[25.66,45.46] }
+};
 const DIR_DEFAULTS_POS = { N:[50,4], S:[50,93], E:[92,50], W:[8,50] };
 const DIR_DEFAULTS_LBL = { N:'西北', S:'东南', E:'东北', W:'西南' };
-const DIR_GROUP_KEYS = Object.keys(FLOOR_GROUPS); // isolate direction badges per tab
+const DIR_GROUP_KEYS = Object.keys(FLOOR_GROUPS);
 
 function defaultDirPositions() {
-  const o = {}; DIR_GROUP_KEYS.forEach(g => { o[g] = JSON.parse(JSON.stringify(DIR_DEFAULTS_POS)); }); return o;
+  const o = {}; DIR_GROUP_KEYS.forEach(g => { o[g] = JSON.parse(JSON.stringify(DIR_DEFAULTS_POS_PER_GROUP[g] || DIR_DEFAULTS_POS)); }); return o;
 }
 function defaultDirLabels() {
   const o = {}; DIR_GROUP_KEYS.forEach(g => { o[g] = JSON.parse(JSON.stringify(DIR_DEFAULTS_LBL)); }); return o;
