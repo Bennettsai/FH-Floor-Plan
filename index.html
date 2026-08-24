@@ -422,6 +422,7 @@
   <div class="tt-row"><span class="tt-label">Gender</span><span class="tt-val" id="ttGender"></span></div>
   <div class="tt-row"><span class="tt-label">Lease Start</span><span class="tt-val" id="ttLeaseStart"></span></div>
   <div class="tt-row"><span class="tt-label">Lease End</span><span class="tt-val" id="ttLeaseEnd"></span></div>
+  <div class="tt-row" id="ttEtaRow" style="display:none"><span class="tt-label">ETA</span><span class="tt-val" id="ttEta"></span></div>
   <!-- Second booking -->
   <div class="tt-divider" id="ttDivider2" style="display:none"></div>
   <div class="tt-section" id="ttSection2" style="display:none">
@@ -598,14 +599,15 @@ function processRows(rows) {
       roomStatus:  roomStatus,                 // I: Room Status (was J, shifted -1)
       gender:      String(c[9] ||'').trim(),   // J: Gender (was K, shifted -1)
       leaseStart:  fmtDate(c[10]),             // K: Lease Start (was L, shifted -1)
-      leaseEnd:    fmtDate(c[11]),             // L: Lease End (was M, shifted -1)
-      // Second booking
-      resNumber2:  String(c[12]||'').trim(),   // M: Res Number 2
-      status2:     String(c[13]||'').trim(),   // N: Booking Status 2
-      // c[14] = O: skip
-      gender2:     String(c[15]||'').trim(),   // P: Gender 2
-      leaseStart2: fmtDate(c[16]),             // Q: Lease Start 2
-      leaseEnd2:   fmtDate(c[17]),             // R: Lease End 2
+      leaseEnd:    fmtDate(c[11]),             // L: Lease End
+      eta:         c[12] ? (typeof c[12]==='string'&&!/^\d{4}-/.test(c[12]) ? String(c[12]).trim() : fmtDate(c[12])) : '', // M: ETA
+      // Second booking (shifted +1 after ETA insertion)
+      resNumber2:  String(c[13]||'').trim(),   // N: Res Number 2
+      status2:     String(c[14]||'').trim(),   // O: Booking Status 2
+      // c[15] = P: skip
+      gender2:     String(c[16]||'').trim(),   // Q: Gender 2
+      leaseStart2: fmtDate(c[17]),             // R: Lease Start 2
+      leaseEnd2:   fmtDate(c[18]),             // S: Lease End 2
     };
   });
   // Surface column J sample values so we can verify the mapping
@@ -839,6 +841,10 @@ function populateTooltip(rc,data,color) {
   document.getElementById('ttGender').textContent=data.gender||'–';
   document.getElementById('ttLeaseStart').textContent=data.leaseStart||'–';
   document.getElementById('ttLeaseEnd').textContent=data.leaseEnd||'–';
+  // ETA — show only for Confirmed bookings
+  var isConfirmed = (data.roomStatus||'').toLowerCase() === 'confirmed';
+  document.getElementById('ttEtaRow').style.display = isConfirmed ? 'flex' : 'none';
+  if (isConfirmed) document.getElementById('ttEta').textContent = data.eta || '–';
   // Second booking section — only show if data exists
   const hasSecond = data.resNumber2 && data.resNumber2 !== '–';
   document.getElementById('ttDivider2').style.display = hasSecond ? 'block' : 'none';
