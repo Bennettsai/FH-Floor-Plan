@@ -156,9 +156,19 @@
     #tooltip {
       position: fixed; background: #1e293b; border: 1px solid #334155;
       border-radius: 8px; padding: 9px 13px; font-size: 0.76rem;
-      pointer-events: none; z-index: 1000; min-width: 175px; max-width: 220px;
+      pointer-events: auto; z-index: 1000; min-width: 175px; max-width: 240px;
       box-shadow: 0 6px 20px rgba(0,0,0,0.55); display: none;
     }
+    .tt-3d-btn {
+      background: #3b82f6; color: #fff; font-size: 0.62rem;
+      font-weight: 600; padding: 3px 9px; border-radius: 4px; text-decoration: none;
+    }
+    .tt-3d-btn:hover { background: #2563eb; }
+    .tt-copy-btn {
+      background: #475569; color: #e2e8f0; border: none; font-size: 0.62rem;
+      font-weight: 600; padding: 3px 9px; border-radius: 4px; cursor: pointer; margin-left: 5px;
+    }
+    .tt-copy-btn:hover { background: #64748b; }
     #tooltip .tt-room { font-weight: 700; font-size: 0.88rem; color: #f1f5f9; margin-bottom: 5px; }
     #tooltip .tt-row  { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 3px; }
     #tooltip .tt-label { color: #94a3b8; font-size: 0.72rem; }
@@ -417,6 +427,10 @@
 
 <div id="tooltip">
   <div class="tt-room" id="ttRoom"></div>
+  <div id="tt3dBtns" style="display:none; margin-bottom:5px;">
+    <a id="tt3dAnchor" class="tt-3d-btn" href="#" target="_blank">🔗 3D Link</a>
+    <button class="tt-copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('tt3dAnchor').href);this.textContent='✓ Copied';setTimeout(()=>this.textContent='Copy Link',1500)">Copy Link</button>
+  </div>
   <div class="tt-row"><span class="tt-label">Status</span><span class="tt-val" id="ttStatus"></span></div>
   <div class="tt-row"><span class="tt-label">Res No.</span><span class="tt-val" id="ttResNo"></span></div>
   <div class="tt-row"><span class="tt-label">Gender</span><span class="tt-val" id="ttGender"></span></div>
@@ -595,6 +609,7 @@ function processRows(rows) {
       roomType:    String(c[2] ||'').trim(),
       area:        String(c[3] ||'').trim(),
       status:      String(c[4] ||'').trim(),   // E: Booking Status
+      vrLink:      String(c[6] ||'').trim(),   // G: VR link
       resNumber:   String(c[7] ||'').trim(),   // H: Res Number (shifted -1)
       roomStatus:  roomStatus,                 // I: Room Status (was J, shifted -1)
       gender:      String(c[9] ||'').trim(),   // J: Gender (was K, shifted -1)
@@ -704,9 +719,9 @@ function renderFloor() {
 
     if(!editMode) {
       // Desktop hover tooltip
-      badge.addEventListener('mouseenter', e=>showTooltip(e,rc,key,data,color));
+      badge.addEventListener('mouseenter', e=>{clearTimeout(window._ttHideTimer);showTooltip(e,rc,key,data,color);});
       badge.addEventListener('mousemove',  e=>moveTooltip(e));
-      badge.addEventListener('mouseleave', hideTooltip);
+      badge.addEventListener('mouseleave', ()=>{window._ttHideTimer=setTimeout(hideTooltip,300);});
       // Click/tap highlight
       badge.addEventListener('click', ()=>highlightRoom(rc));
       badge.addEventListener('keydown', e=>{ if(e.key==='Enter') highlightRoom(rc); });
@@ -715,7 +730,6 @@ function renderFloor() {
         e.preventDefault();
         highlightRoom(rc);
         showTooltipAt(e.changedTouches[0].clientX, e.changedTouches[0].clientY, rc, key, data, color);
-        setTimeout(hideTooltip, 2500);
       });
     } else {
       makeDraggable(badge, rc);
@@ -845,6 +859,10 @@ function populateTooltip(rc,data,color) {
   var isConfirmed = (data.roomStatus||'').toLowerCase() === 'confirmed';
   document.getElementById('ttEtaRow').style.display = isConfirmed ? 'flex' : 'none';
   if (isConfirmed) document.getElementById('ttEta').textContent = data.eta || '–';
+  // 3D VR link — show if room has a VR URL
+  var hasVR = data.vrLink && data.vrLink.startsWith('http');
+  document.getElementById('tt3dBtns').style.display = hasVR ? 'inline-flex' : 'none';
+  if (hasVR) document.getElementById('tt3dAnchor').href = data.vrLink;
   // Second booking section — only show if data exists
   const hasSecond = data.resNumber2 && data.resNumber2 !== '–';
   document.getElementById('ttDivider2').style.display = hasSecond ? 'block' : 'none';
@@ -862,7 +880,9 @@ function moveTooltip(e) {
   tt.style.left=Math.min(e.clientX+14,window.innerWidth-230)+'px';
   tt.style.top =Math.min(e.clientY-10,window.innerHeight-160)+'px';
 }
-function hideTooltip(){ document.getElementById('tooltip').style.display='none'; }
+function hideTooltip(){ clearTimeout(window._ttHideTimer); document.getElementById('tooltip').style.display='none'; }
+document.getElementById('tooltip').addEventListener('mouseenter', ()=>clearTimeout(window._ttHideTimer));
+document.getElementById('tooltip').addEventListener('mouseleave', ()=>{window._ttHideTimer=setTimeout(hideTooltip,300);});
 
 /* ── Edit Mode ── */
 function loadSavedPositions() {
